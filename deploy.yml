@@ -93,6 +93,16 @@
     # -------------------------------------------------------------------------
     # Step 5: Wait for Build to Complete
     # -------------------------------------------------------------------------
+    - name: Wait for build to start
+      kubernetes.core.k8s_info:
+        api_version: build.openshift.io/v1
+        kind: Build
+        namespace: maas-rag-demo
+      register: r_builds_start
+      until: r_builds_start.resources | length > 0
+      retries: 30
+      delay: 5
+
     - name: Wait for build to complete
       kubernetes.core.k8s_info:
         api_version: build.openshift.io/v1
@@ -166,25 +176,15 @@
         msg:
           - ""
           - "========================================="
-          - "🎉 MaaS RAG Example Deployed!"
+          - "MaaS RAG Example Deployed Successfully"
           - "========================================="
           - ""
           - "Application URL: {{ final_app_url }}"
           - "Namespace: maas-rag-demo"
           - ""
-          - "Test it now:"
-          - "  export APP_URL='{{ final_app_url }}'"
+          - "Set environment variable:"
+          - "export APP_URL={{ final_app_url }}"
           - ""
-          - "  # Ingest a document"
-          - "  curl -X POST $APP_URL/ingest \\"
-          - "    -H 'Content-Type: application/json' \\"
-          - "    -d '{\"title\": \"OpenShift\", \"content\": \"Red Hat OpenShift is a Kubernetes platform.\"}'"
-          - ""
-          - "  # Ask a question"
-          - "  curl -X POST $APP_URL/ask \\"
-          - "    -H 'Content-Type: application/json' \\"
-          - "    -d '{\"question\": \"What is OpenShift?\"}'"
-          - ""
-          - "For detailed testing instructions, see INSTRUCTIONS.md"
+          - "For testing instructions see INSTRUCTIONS.md"
           - ""
           - "========================================="
