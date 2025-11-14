@@ -54,9 +54,8 @@ ansible-playbook cleanup.yml
 
 ## Documentation
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - How RAG works with LiteMaaS
-- **[QUICKSTART.md](QUICKSTART.md)** - Detailed quick start guide
-- **[INSTRUCTIONS.md](INSTRUCTIONS.md)** - Simple one-page instructions
+- **[TUTORIAL.md](TUTORIAL.md)** - Learn how RAG works with LiteMaaS
+- **[INSTRUCTIONS.md](INSTRUCTIONS.md)** - Testing the application
 
 ## API Endpoints
 

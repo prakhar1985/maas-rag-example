@@ -1,6 +1,6 @@
-# Architecture & Tutorial: RAG with LiteMaaS
+# Tutorial: Building RAG Applications with LiteMaaS
 
-This document explains how this RAG (Retrieval-Augmented Generation) application works and how it uses LiteMaaS for AI capabilities.
+This tutorial explains how to build RAG (Retrieval-Augmented Generation) applications using LiteMaaS on OpenShift.
 
 ## Table of Contents
 
