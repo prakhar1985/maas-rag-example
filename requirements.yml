@@ -11,13 +11,6 @@ collections:
   - name: kubernetes.core
     version: ">=2.4.0"
 
-  # AgnosticD core for user_info module
-  - name: agnosticd.core
-    source: https://github.com/redhat-cop/agnosticd.git
-    type: git
-    version: development
-
-  # This collection (install from local directory or GitHub)
-  - name: maas_rag_example.maas_rag_example
-    source: .
+  # This collection (maas_rag_example) - installed from current directory
+  - name: .
     type: dir
