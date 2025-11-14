@@ -39,29 +39,14 @@ curl $APP_URL/
 Add some documents to the knowledge base:
 
 ```bash
-# Document 1: OpenShift
-curl -X POST $APP_URL/ingest \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "What is OpenShift",
-    "content": "Red Hat OpenShift is a Kubernetes platform for containerized applications. It provides automated operations, built-in monitoring, and enterprise security."
-  }'
+# Document 1: Coffee Facts
+curl -X POST $APP_URL/ingest -H "Content-Type: application/json" -d '{"title":"Coffee Facts","content":"Coffee is a magical bean juice that turns I cannot into I can."}'
 
-# Document 2: Containers
-curl -X POST $APP_URL/ingest \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Container Technology",
-    "content": "Containers package applications with their dependencies, making them portable across environments. Docker and Podman are popular container runtimes."
-  }'
+# Document 2: Debugging
+curl -X POST $APP_URL/ingest -H "Content-Type: application/json" -d '{"title":"Debugging","content":"Debugging is like being a detective in a crime movie where you are also the murderer."}'
 
 # Document 3: Kubernetes
-curl -X POST $APP_URL/ingest \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Kubernetes Basics",
-    "content": "Kubernetes orchestrates containerized applications across clusters. It handles scheduling, scaling, and self-healing of applications."
-  }'
+curl -X POST $APP_URL/ingest -H "Content-Type: application/json" -d '{"title":"Kubernetes","content":"Kubernetes kills your pods when they misbehave. It is basically pod jail."}'
 ```
 
 **Expected**: Each returns:
@@ -69,7 +54,7 @@ curl -X POST $APP_URL/ingest \
 {
   "id": 1,
   "message": "Document ingested successfully",
-  "title": "What is OpenShift"
+  "title": "Coffee Facts"
 }
 ```
 
@@ -85,49 +70,87 @@ curl $APP_URL/documents
 
 Now ask questions using the RAG application:
 
-### Question 1: About OpenShift
+### Question 1: About Coffee
 
 ```bash
-curl -X POST $APP_URL/ask \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "What is OpenShift?"
-  }'
+curl -X POST $APP_URL/ask -H "Content-Type: application/json" -d '{"question":"What is coffee?"}'
 ```
 
 **Expected**:
 ```json
 {
-  "question": "What is OpenShift?",
-  "answer": "Red Hat OpenShift is a Kubernetes platform for containerized applications...",
+  "question": "What is coffee?",
+  "answer": "Coffee is a magical bean juice that turns 'I cannot' into 'I can.'",
   "sources": [
     {
-      "title": "What is OpenShift",
-      "similarity": 0.89
+      "title": "Coffee Facts",
+      "similarity": 0.87
     }
   ]
 }
 ```
 
-### Question 2: About Containers
+### Question 2: About Debugging
 
 ```bash
-curl -X POST $APP_URL/ask \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "How do containers work?"
-  }'
+curl -X POST $APP_URL/ask -H "Content-Type: application/json" -d '{"question":"Tell me about debugging"}'
 ```
 
 ### Question 3: About Kubernetes
 
 ```bash
-curl -X POST $APP_URL/ask \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "What does Kubernetes do?"
-  }'
+curl -X POST $APP_URL/ask -H "Content-Type: application/json" -d '{"question":"What happens to misbehaving pods?"}'
 ```
+
+## How Do You Know It's Actually Working?
+
+Here's the magic of RAG - watch this happen:
+
+**1. You ask a question you NEVER explicitly answered**
+
+Try this question that's not in any document:
+```bash
+curl -X POST $APP_URL/ask -H "Content-Type: application/json" -d '{"question":"Why do developers need coffee?"}'
+```
+
+**What happens:**
+- The app searches your documents using vector similarity
+- Finds "Coffee Facts" document (even though the question is different)
+- Granite model reads that document and generates a NEW answer
+- You get an answer that combines the document content with the question
+
+**2. The similarity score shows you what it found**
+
+Look at the `sources` in the response:
+```json
+{
+  "answer": "Based on the context, coffee helps developers by turning 'I cannot' into 'I can'...",
+  "sources": [
+    {
+      "title": "Coffee Facts",
+      "similarity": 0.82
+    }
+  ]
+}
+```
+
+The `0.82` similarity means it found a pretty good match!
+
+**3. Try a question that has NO match**
+
+```bash
+curl -X POST $APP_URL/ask -H "Content-Type: application/json" -d '{"question":"What is the capital of France?"}'
+```
+
+You'll see:
+- Low similarity scores (like 0.15 or 0.25)
+- The model will say "The context doesn't contain information about this"
+
+**This proves:**
+- ✅ Embedding model (Nomic) is converting text to vectors
+- ✅ Vector search (pgvector) is finding similar documents
+- ✅ Chat model (Granite) is reading context and generating answers
+- ✅ The whole RAG pipeline is working!
 
 ## Understanding the Response
 
