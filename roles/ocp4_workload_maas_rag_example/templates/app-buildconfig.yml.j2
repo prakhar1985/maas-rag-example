@@ -1,0 +1,24 @@
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: maas-rag-app
+  labels:
+    app: maas-rag-app
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: maas-rag-app:latest
+  source:
+    type: Git
+    git:
+      uri: https://github.com/prakhar1985/maas-rag-example.git
+      ref: main
+    contextDir: roles/ocp4_workload_maas_rag_example/files
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile
+  triggers:
+  - type: ConfigChange

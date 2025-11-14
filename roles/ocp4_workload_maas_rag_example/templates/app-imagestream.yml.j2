@@ -1,0 +1,10 @@
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: maas-rag-app
+  labels:
+    app: maas-rag-app
+spec:
+  lookupPolicy:
+    local: true

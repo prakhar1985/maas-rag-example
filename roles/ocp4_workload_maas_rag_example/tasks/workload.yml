@@ -84,7 +84,62 @@
   delay: 10
 
 # -----------------------------------------------------------------------------
-# Step 5: Deploy Flask RAG Application
+# Step 5: Build Flask Application Image (if enabled)
+# -----------------------------------------------------------------------------
+- name: Build application image on OpenShift
+  when: ocp4_workload_maas_rag_example_build_image | bool
+  block:
+    - name: Create ImageStream for app
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+        definition: "{{ lookup('template', 'app-imagestream.yml.j2') }}"
+
+    - name: Create BuildConfig for app
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+        definition: "{{ lookup('template', 'app-buildconfig.yml.j2') }}"
+
+    - name: Start build
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+        definition:
+          apiVersion: build.openshift.io/v1
+          kind: BuildRequest
+          metadata:
+            name: maas-rag-app
+      register: r_build_request
+      failed_when: false
+
+    - name: Wait for build to complete
+      kubernetes.core.k8s_info:
+        api_version: build.openshift.io/v1
+        kind: Build
+        namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+        label_selectors:
+          - buildconfig=maas-rag-app
+      register: r_builds
+      until:
+        - r_builds.resources | length > 0
+        - r_builds.resources[0].status.phase is defined
+        - r_builds.resources[0].status.phase in ['Complete', 'Failed']
+      retries: 60
+      delay: 10
+
+    - name: Check build status
+      ansible.builtin.assert:
+        that:
+          - r_builds.resources[0].status.phase == 'Complete'
+        fail_msg: "Build failed. Check logs with: oc logs -n {{ ocp4_workload_maas_rag_example_namespace }} build/maas-rag-app-1"
+
+    - name: Display build success
+      ansible.builtin.debug:
+        msg: "Application image built successfully"
+
+# -----------------------------------------------------------------------------
+# Step 6: Deploy Flask RAG Application
 # -----------------------------------------------------------------------------
 - name: Deploy Flask RAG application
   kubernetes.core.k8s:
@@ -119,7 +174,7 @@
   delay: 10
 
 # -----------------------------------------------------------------------------
-# Step 6: Get Application Route
+# Step 7: Get Application Route
 # -----------------------------------------------------------------------------
 - name: Get application route
   kubernetes.core.k8s_info:

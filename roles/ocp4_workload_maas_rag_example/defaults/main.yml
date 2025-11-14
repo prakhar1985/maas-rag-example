@@ -29,7 +29,9 @@ ocp4_workload_maas_rag_example_postgres_memory_request: 1Gi
 ocp4_workload_maas_rag_example_postgres_memory_limit: 2Gi
 
 # Flask Application Configuration
-ocp4_workload_maas_rag_example_app_image: quay.io/psrivast/maas-rag-app:latest
+# Set to true to build image on OpenShift, false to use pre-built image
+ocp4_workload_maas_rag_example_build_image: true
+ocp4_workload_maas_rag_example_app_image: image-registry.openshift-image-registry.svc:5000/{{ ocp4_workload_maas_rag_example_namespace }}/maas-rag-app:latest
 ocp4_workload_maas_rag_example_app_replicas: 1
 
 # Flask App Resources
