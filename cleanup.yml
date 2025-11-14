@@ -1,0 +1,57 @@
+---
+# =============================================================================
+# MaaS RAG Example - One-Step Cleanup
+# =============================================================================
+# This playbook removes the RAG application deployment
+#
+# Usage:
+#   ansible-playbook cleanup.yml
+# =============================================================================
+
+- name: Remove MaaS RAG Example - Complete
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    # -------------------------------------------------------------------------
+    # Step 1: Validate OpenShift Connection
+    # -------------------------------------------------------------------------
+    - name: Check OpenShift connection
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: default
+      register: r_oc_check
+      failed_when: false
+
+    - name: Fail if not logged into OpenShift
+      ansible.builtin.fail:
+        msg: |
+          Not logged into OpenShift!
+          Please run: oc login https://YOUR_CLUSTER_URL:6443 --token=YOUR_TOKEN
+      when: r_oc_check.failed | default(false)
+
+    # -------------------------------------------------------------------------
+    # Step 2: Remove Workload
+    # -------------------------------------------------------------------------
+    - name: Remove MaaS RAG workload
+      ansible.builtin.include_role:
+        name: maas_rag_example.maas_rag_example.ocp4_workload_maas_rag_example
+      vars:
+        ACTION: destroy
+
+    # -------------------------------------------------------------------------
+    # Step 3: Display Cleanup Summary
+    # -------------------------------------------------------------------------
+    - name: Display cleanup summary
+      ansible.builtin.debug:
+        msg:
+          - ""
+          - "========================================="
+          - "🧹 MaaS RAG Example Removed"
+          - "========================================="
+          - ""
+          - "Namespace 'maas-rag-demo' has been deleted"
+          - "All resources cleaned up successfully"
+          - ""
+          - "========================================="

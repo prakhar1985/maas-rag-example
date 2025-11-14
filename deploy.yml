@@ -1,0 +1,183 @@
+---
+# =============================================================================
+# MaaS RAG Example - One-Step Deployment
+# =============================================================================
+# This playbook handles everything:
+# 1. Validates credentials
+# 2. Installs collection
+# 3. Deploys the workload
+# 4. Tests the deployment
+#
+# Usage:
+#   ansible-playbook deploy.yml -e litellm_api_base_url=https://... -e litellm_virtual_key=sk-...
+# =============================================================================
+
+- name: Deploy MaaS RAG Example - Complete
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    # -------------------------------------------------------------------------
+    # Step 1: Validate OpenShift Connection
+    # -------------------------------------------------------------------------
+    - name: Check OpenShift connection
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: default
+      register: r_oc_check
+      failed_when: false
+
+    - name: Fail if not logged into OpenShift
+      ansible.builtin.fail:
+        msg: |
+          Not logged into OpenShift!
+          Please run: oc login https://YOUR_CLUSTER_URL:6443 --token=YOUR_TOKEN
+      when: r_oc_check.failed | default(false)
+
+    - name: Display OpenShift connection
+      ansible.builtin.debug:
+        msg: "✓ Connected to OpenShift cluster"
+
+    # -------------------------------------------------------------------------
+    # Step 2: Validate LiteMaaS Credentials
+    # -------------------------------------------------------------------------
+    - name: Test LiteMaaS API connection
+      ansible.builtin.uri:
+        url: "{{ litellm_api_base_url }}/models"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ litellm_virtual_key }}"
+        validate_certs: false
+        status_code: [200, 201]
+      register: r_litemaas_check
+      failed_when: false
+
+    - name: Fail if LiteMaaS credentials invalid
+      ansible.builtin.fail:
+        msg: |
+          LiteMaaS API credentials are invalid!
+          Please check your API URL and virtual key.
+          API URL: {{ litellm_api_base_url }}
+      when: r_litemaas_check.failed | default(false)
+
+    - name: Display LiteMaaS connection
+      ansible.builtin.debug:
+        msg: "✓ LiteMaaS API credentials valid"
+
+    # -------------------------------------------------------------------------
+    # Step 3: Install Collection
+    # -------------------------------------------------------------------------
+    - name: Install MaaS RAG Example collection
+      ansible.builtin.command:
+        cmd: ansible-galaxy collection install . --force
+        chdir: "{{ playbook_dir }}"
+      register: r_collection_install
+      changed_when: "'Installing' in r_collection_install.stdout"
+
+    - name: Display collection installation
+      ansible.builtin.debug:
+        msg: "✓ Collection installed"
+
+    # -------------------------------------------------------------------------
+    # Step 4: Deploy RAG Application
+    # -------------------------------------------------------------------------
+    - name: Deploy MaaS RAG workload
+      ansible.builtin.include_role:
+        name: maas_rag_example.maas_rag_example.ocp4_workload_maas_rag_example
+      vars:
+        ACTION: provision
+        litellm_api_base_url: "{{ litellm_api_base_url }}"
+        litellm_virtual_key: "{{ litellm_virtual_key }}"
+
+    # -------------------------------------------------------------------------
+    # Step 5: Display Access Information
+    # -------------------------------------------------------------------------
+    - name: Get application route
+      kubernetes.core.k8s_info:
+        api_version: route.openshift.io/v1
+        kind: Route
+        namespace: maas-rag-demo
+        name: maas-rag-app
+      register: r_final_route
+
+    - name: Set final app URL
+      ansible.builtin.set_fact:
+        final_app_url: "https://{{ r_final_route.resources[0].spec.host }}"
+
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg:
+          - ""
+          - "========================================="
+          - "🎉 MaaS RAG Example Deployed!"
+          - "========================================="
+          - ""
+          - "Application URL: {{ final_app_url }}"
+          - "Namespace: maas-rag-demo"
+          - ""
+          - "Test it now:"
+          - "  export APP_URL='{{ final_app_url }}'"
+          - ""
+          - "  # Ingest a document"
+          - "  curl -X POST $APP_URL/ingest \\"
+          - "    -H 'Content-Type: application/json' \\"
+          - "    -d '{\"title\": \"OpenShift\", \"content\": \"Red Hat OpenShift is a Kubernetes platform.\"}'"
+          - ""
+          - "  # Ask a question"
+          - "  curl -X POST $APP_URL/ask \\"
+          - "    -H 'Content-Type: application/json' \\"
+          - "    -d '{\"question\": \"What is OpenShift?\"}'"
+          - ""
+          - "========================================="
+
+    # -------------------------------------------------------------------------
+    # Step 6: Optional - Run Quick Test
+    # -------------------------------------------------------------------------
+    - name: Ask if user wants to run a test
+      ansible.builtin.pause:
+        prompt: "Do you want to run a quick test? (yes/no)"
+      register: r_test_prompt
+
+    - name: Run quick test
+      when: r_test_prompt.user_input | lower in ['yes', 'y']
+      block:
+        - name: Ingest test document
+          ansible.builtin.uri:
+            url: "{{ final_app_url }}/ingest"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+            body:
+              title: "OpenShift Platform"
+              content: "Red Hat OpenShift is a Kubernetes platform for containerized applications with automated operations."
+            validate_certs: false
+            status_code: [200, 201]
+          register: r_ingest_test
+
+        - name: Display ingest result
+          ansible.builtin.debug:
+            msg: "✓ Document ingested: {{ r_ingest_test.json }}"
+
+        - name: Ask test question
+          ansible.builtin.uri:
+            url: "{{ final_app_url }}/ask"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+            body:
+              question: "What is OpenShift?"
+            validate_certs: false
+            status_code: [200]
+          register: r_ask_test
+
+        - name: Display answer
+          ansible.builtin.debug:
+            msg:
+              - ""
+              - "Question: What is OpenShift?"
+              - "Answer: {{ r_ask_test.json.answer }}"
+              - ""
+              - "✓ RAG application working correctly!"

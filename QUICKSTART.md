@@ -1,8 +1,8 @@
 # MaaS RAG Example - Quick Start Guide
 
-## Simple 3-Step Deployment
+## ONE-STEP Deployment
 
-### Step 1: Order Resources from RHDP
+### Prerequisites
 
 1. **OpenShift CNV Pool 4.20** - Order from RHDP catalog
 2. **LiteMaaS Virtual Keys** - Select these models:
@@ -14,71 +14,36 @@ Wait for both to deploy. You'll receive:
 - OpenShift cluster URL and credentials
 - LiteMaaS API URL and virtual key
 
-### Step 2: Build & Push Container Image
+### Deploy Everything in One Command
 
 ```bash
 # Clone the repo
 git clone https://github.com/prakhar1985/maas-rag-example.git
-cd maas-rag-example/roles/ocp4_workload_maas_rag_example/files
+cd maas-rag-example
 
-# Build image (replace YOUR_USERNAME with your Quay.io username)
-podman build -t quay.io/YOUR_USERNAME/maas-rag-app:latest -f Containerfile .
+# Login to OpenShift
+oc login https://YOUR_CLUSTER_URL:6443 --token=YOUR_TOKEN
 
-# Login and push
-podman login quay.io
-podman push quay.io/YOUR_USERNAME/maas-rag-app:latest
-
-# Update image reference
-cd ../../..
-sed -i '' 's|quay.io/psrivast/maas-rag-app:latest|quay.io/YOUR_USERNAME/maas-rag-app:latest|' \
-  roles/ocp4_workload_maas_rag_example/defaults/main.yml
+# Deploy everything in one step
+ansible-playbook deploy.yml \
+  -e litellm_api_base_url=https://litellm-rhpds.apps.YOUR_CLUSTER.com/v1 \
+  -e litellm_virtual_key=sk-YOUR-VIRTUAL-KEY-HERE
 ```
 
-### Step 3: Deploy to OpenShift
+That's it! The playbook will:
+1. ✅ Validate OpenShift connection
+2. ✅ Validate LiteMaaS credentials
+3. ✅ Install the collection
+4. ✅ Build the container image on OpenShift
+5. ✅ Deploy PostgreSQL with pgvector
+6. ✅ Deploy the Flask RAG application
+7. ✅ Create the Route
+8. ✅ Display the application URL
+9. ✅ Optionally run a test
 
-```bash
-# Install collection
-ansible-galaxy collection install .
+## Test the Application
 
-# Create vars file with your credentials
-cat > vars.yml <<EOF
----
-litellm_api_base_url: YOUR_LITEMAAS_URL    # From LiteMaaS order
-litellm_virtual_key: YOUR_VIRTUAL_KEY       # From LiteMaaS order
-openshift_api_url: YOUR_OPENSHIFT_URL       # From CNV Pool order
-openshift_api_key: YOUR_OPENSHIFT_TOKEN     # From CNV Pool order
-EOF
-
-# Create deployment playbook
-cat > deploy.yml <<EOF
----
-- name: Deploy MaaS RAG Example
-  hosts: localhost
-  gather_facts: false
-  vars_files:
-    - vars.yml
-  tasks:
-    - name: Run workload
-      ansible.builtin.include_role:
-        name: maas_rag_example.maas_rag_example.ocp4_workload_maas_rag_example
-      vars:
-        ACTION: provision
-EOF
-
-# Deploy!
-ansible-playbook deploy.yml
-```
-
-The deployment will:
-- Create `maas-rag-demo` namespace
-- Deploy PostgreSQL 16 with pgvector
-- Deploy Flask RAG application
-- Create OpenShift Route
-- Display the application URL
-
-## Test It Out
-
-Get the app URL from the deployment output, then:
+The deployment will display the app URL. Test it:
 
 ```bash
 export APP_URL="https://YOUR_APP_URL"
@@ -95,38 +60,91 @@ curl -X POST $APP_URL/ingest \
 curl -X POST $APP_URL/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "What is OpenShift Virtualization?"}'
+
+# List documents
+curl $APP_URL/documents
 ```
 
 ## Cleanup
 
-```bash
-cat > cleanup.yml <<EOF
----
-- name: Remove MaaS RAG Example
-  hosts: localhost
-  gather_facts: false
-  vars_files:
-    - vars.yml
-  tasks:
-    - name: Run workload removal
-      ansible.builtin.include_role:
-        name: maas_rag_example.maas_rag_example.ocp4_workload_maas_rag_example
-      vars:
-        ACTION: destroy
-EOF
+Remove everything in one command:
 
+```bash
 ansible-playbook cleanup.yml
 ```
 
 ## What You Get
 
-- **RAG Application**: Document ingestion + question answering
-- **Vector Database**: PostgreSQL with pgvector extension
-- **AI Models**: Nomic for embeddings, Granite for chat (via LiteMaaS)
-- **Web Interface**: Accessible via OpenShift Route
+- **Vector Database**: PostgreSQL 16 with pgvector extension
+- **RAG Application**: Flask app with document ingestion + Q&A
+- **AI Models**:
+  - Nomic Embed v1.5 for embeddings
+  - Granite 3.2 8B Instruct for chat
+  - Accessed via LiteMaaS
+- **Web API**: RESTful endpoints accessible via OpenShift Route
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/` | GET | API information |
+| `/ingest` | POST | Ingest a document with embedding |
+| `/ask` | POST | Ask a question (RAG) |
+| `/documents` | GET | List all documents |
+
+## Troubleshooting
+
+### Check deployment status
+```bash
+oc get pods -n maas-rag-demo
+oc get route -n maas-rag-demo
+```
+
+### View logs
+```bash
+# Application logs
+oc logs -n maas-rag-demo deployment/maas-rag-app
+
+# PostgreSQL logs
+oc logs -n maas-rag-demo statefulset/postgres
+
+# Build logs (if build failed)
+oc logs -n maas-rag-demo build/maas-rag-app-1
+```
+
+### Test LiteMaaS connection
+```bash
+curl https://YOUR_LITEMAAS_URL/v1/models \
+  -H "Authorization: Bearer YOUR_KEY"
+```
+
+## Architecture
+
+```
+┌─────────────────┐
+│  Flask App      │
+│  (Python)       │
+└────┬────────┬───┘
+     │        │
+     │        └──────────> LiteMaaS API
+     │                     - Nomic Embed (embeddings)
+     │                     - Granite 3.2 8B (chat)
+     │
+     └────────────────────> PostgreSQL 16
+                            - pgvector extension
+                            - Vector similarity search
+```
 
 ## Next Steps
 
 - See [README.md](README.md) for detailed documentation
-- Check API endpoints at `$APP_URL/`
 - Customize variables in `roles/ocp4_workload_maas_rag_example/defaults/main.yml`
+- Add more documents and test different questions
+- Explore the Flask app source code in `roles/ocp4_workload_maas_rag_example/files/app.py`
+
+## Support
+
+For issues or questions:
+- **Repository**: https://github.com/prakhar1985/maas-rag-example
+- **Maintainer**: Prakhar Srivastava <psrivast@redhat.com>
