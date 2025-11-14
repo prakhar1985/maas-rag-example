@@ -47,6 +47,12 @@ curl -X POST $APP_URL/ingest -H "Content-Type: application/json" -d '{"title":"D
 
 # Document 3: Kubernetes
 curl -X POST $APP_URL/ingest -H "Content-Type: application/json" -d '{"title":"Kubernetes","content":"Kubernetes kills your pods when they misbehave. It is basically pod jail."}'
+
+# Document 4: Superhero Movies
+curl -X POST $APP_URL/ingest -H "Content-Type: application/json" -d '{"title":"Superhero Movies","content":"Every superhero movie is just people in fancy pajamas solving problems they created."}'
+
+# Document 5: Programming Joke
+curl -X POST $APP_URL/ingest -H "Content-Type: application/json" -d '{"title":"Programming Joke","content":"Why do programmers prefer dark mode? Because light attracts bugs."}'
 ```
 
 **Expected**: Each returns:
@@ -100,6 +106,18 @@ curl -X POST $APP_URL/ask -H "Content-Type: application/json" -d '{"question":"T
 
 ```bash
 curl -X POST $APP_URL/ask -H "Content-Type: application/json" -d '{"question":"What happens to misbehaving pods?"}'
+```
+
+### Question 4: About Superheroes
+
+```bash
+curl -X POST $APP_URL/ask -H "Content-Type: application/json" -d '{"question":"Tell me about superhero movies"}'
+```
+
+### Question 5: About Dark Mode
+
+```bash
+curl -X POST $APP_URL/ask -H "Content-Type: application/json" -d '{"question":"Why do programmers like dark mode?"}'
 ```
 
 ## How Do You Know It's Actually Working?
