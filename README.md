@@ -6,7 +6,7 @@ Production-ready RAG (Retrieval-Augmented Generation) application demonstrating 
 
 ### Prerequisites
 
-1. **OpenShift CNV Pool 4.20** from RHDP catalog
+1. **OpenShift Open Environment** from RHDP catalog
 2. **LiteMaaS Virtual Keys** with:
    - `nomic-embed-text-v1-5` (embeddings)
    - `granite-3-2-8b-instruct` (chat)
@@ -14,6 +14,9 @@ Production-ready RAG (Retrieval-Augmented Generation) application demonstrating 
 ### Deploy
 
 ```bash
+# SSH to bastion
+ssh lab-user@bastion.GUID.dynamic.redhatworkshops.io
+
 # Clone repository
 git clone https://github.com/prakhar1985/maas-rag-example.git
 cd maas-rag-example
@@ -21,10 +24,7 @@ cd maas-rag-example
 # Install Ansible collections
 ansible-galaxy collection install -r requirements.yml
 
-# Login to OpenShift
-oc login https://api.YOUR_CLUSTER.com:6443 --token=YOUR_TOKEN
-
-# Deploy application
+# Deploy application (already logged into OpenShift)
 ansible-playbook deploy.yml \
   -e litellm_api_base_url=https://litellm-rhpds.apps.YOUR_CLUSTER.com/v1 \
   -e litellm_virtual_key=sk-YOUR-VIRTUAL-KEY-HERE
