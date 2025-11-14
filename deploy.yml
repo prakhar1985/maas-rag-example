@@ -91,7 +91,63 @@
         litellm_virtual_key: "{{ litellm_virtual_key }}"
 
     # -------------------------------------------------------------------------
-    # Step 5: Display Access Information
+    # Step 5: Wait for Build to Complete
+    # -------------------------------------------------------------------------
+    - name: Wait for build to complete
+      kubernetes.core.k8s_info:
+        api_version: build.openshift.io/v1
+        kind: Build
+        namespace: maas-rag-demo
+      register: r_builds
+      until:
+        - r_builds.resources | length > 0
+        - r_builds.resources | selectattr('status.phase', 'defined') | list | length > 0
+        - r_builds.resources | map(attribute='status.phase') | select('in', ['Complete', 'Failed', 'Error', 'Cancelled']) | list | length > 0
+      retries: 60
+      delay: 10
+
+    - name: Get latest build status
+      ansible.builtin.set_fact:
+        latest_build: "{{ r_builds.resources | sort(attribute='metadata.creationTimestamp') | last }}"
+
+    - name: Fail if build failed
+      ansible.builtin.fail:
+        msg: |
+          Build failed!
+          Build name: {{ latest_build.metadata.name }}
+          Phase: {{ latest_build.status.phase }}
+          Check logs: oc logs -n maas-rag-demo build/{{ latest_build.metadata.name }}
+      when: latest_build.status.phase in ['Failed', 'Error', 'Cancelled']
+
+    - name: Display build success
+      ansible.builtin.debug:
+        msg: "✓ Build {{ latest_build.metadata.name }} completed successfully"
+
+    # -------------------------------------------------------------------------
+    # Step 6: Wait for Application Pod to be Ready
+    # -------------------------------------------------------------------------
+    - name: Wait for application pod to be ready
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: maas-rag-demo
+        label_selectors:
+          - app=maas-rag-app
+      register: r_app_pods
+      until:
+        - r_app_pods.resources | length > 0
+        - r_app_pods.resources | selectattr('status.conditions', 'defined') | list | length > 0
+        - r_app_pods.resources | map(attribute='status.conditions') | select | map('selectattr', 'type', 'equalto', 'Ready') | list | length > 0
+        - r_app_pods.resources | map(attribute='status.conditions') | select | map('selectattr', 'type', 'equalto', 'Ready') | map('selectattr', 'status', 'equalto', 'True') | list | length > 0
+      retries: 30
+      delay: 10
+
+    - name: Display pod ready
+      ansible.builtin.debug:
+        msg: "✓ Application pod is ready"
+
+    # -------------------------------------------------------------------------
+    # Step 7: Display Access Information
     # -------------------------------------------------------------------------
     - name: Get application route
       kubernetes.core.k8s_info:
