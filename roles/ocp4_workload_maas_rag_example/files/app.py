@@ -105,6 +105,14 @@ def chat_completion(messages):
     return response.json()['choices'][0]['message']['content']
 
 
+# Initialize database on app startup (works with gunicorn)
+try:
+    init_db()
+    print("Database initialized successfully")
+except Exception as e:
+    print(f"Warning: Could not initialize database: {e}")
+
+
 @app.route('/health')
 def health():
     """Health check endpoint"""
