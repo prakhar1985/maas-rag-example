@@ -3,24 +3,32 @@
 # MaaS RAG Example - Post-Workload Tasks
 # =============================================================================
 
-- name: Send user info messages
+- name: Display application access information
   when: ocp4_workload_maas_rag_example_enable_user_info | bool
-  block:
-    - name: Print application access information
-      maas_rag_example.maas_rag_example.agnosticd_user_info:
-        msg: "{{ item }}"
-      loop:
-        - "RAG Application URL: {{ maas_rag_app_url }}"
-        - "Namespace: {{ ocp4_workload_maas_rag_example_namespace }}"
-        - "Embedding Model: {{ ocp4_workload_maas_rag_example_embedding_model }}"
-        - "Chat Model: {{ ocp4_workload_maas_rag_example_chat_model }}"
-        - "Test the application by visiting the URL above"
-        - "Use /ingest endpoint to add documents and /ask endpoint to query"
-
-    - name: Save user info data
-      maas_rag_example.maas_rag_example.agnosticd_user_info:
-        data:
-          maas_rag_app_url: "{{ maas_rag_app_url }}"
-          maas_rag_namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
-          maas_rag_embedding_model: "{{ ocp4_workload_maas_rag_example_embedding_model }}"
-          maas_rag_chat_model: "{{ ocp4_workload_maas_rag_example_chat_model }}"
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "========================================="
+      - "✅ MaaS RAG Application Deployed!"
+      - "========================================="
+      - ""
+      - "Application URL: {{ maas_rag_app_url }}"
+      - "Namespace: {{ ocp4_workload_maas_rag_example_namespace }}"
+      - ""
+      - "Models:"
+      - "  Embedding: {{ ocp4_workload_maas_rag_example_embedding_model }}"
+      - "  Chat: {{ ocp4_workload_maas_rag_example_chat_model }}"
+      - ""
+      - "Next Steps:"
+      - "  1. Visit the application URL above"
+      - "  2. Use /ingest endpoint to add documents"
+      - "  3. Use /ask endpoint to query with RAG"
+      - ""
+      - "Example:"
+      - "  export APP_URL='{{ maas_rag_app_url }}'"
+      - "  curl -X POST $APP_URL/ingest -H 'Content-Type: application/json' \\"
+      - "    -d '{\"title\": \"Test\", \"content\": \"OpenShift is a Kubernetes platform.\"}'"
+      - "  curl -X POST $APP_URL/ask -H 'Content-Type: application/json' \\"
+      - "    -d '{\"question\": \"What is OpenShift?\"}'"
+      - ""
+      - "========================================="
