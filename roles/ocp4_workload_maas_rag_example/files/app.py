@@ -45,6 +45,9 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # Install pgvector extension
+    cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+
     # Create documents table with vector column
     cur.execute("""
         CREATE TABLE IF NOT EXISTS documents (

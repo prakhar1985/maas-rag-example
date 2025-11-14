@@ -16,48 +16,6 @@ spec:
       labels:
         app: postgres
     spec:
-      initContainers:
-      # Install pgvector extension after PostgreSQL starts
-      - name: install-pgvector
-        image: {{ ocp4_workload_maas_rag_example_postgres_image }}
-        command:
-        - /bin/bash
-        - -c
-        - |
-          # Wait for PostgreSQL to be ready
-          until pg_isready -h localhost -U postgres; do
-            echo "Waiting for PostgreSQL to start..."
-            sleep 2
-          done
-
-          # Install pgvector extension
-          psql -U postgres -d ${POSTGRESQL_DATABASE} -c "CREATE EXTENSION IF NOT EXISTS vector;"
-
-          echo "pgvector extension installed successfully"
-        env:
-        - name: POSTGRESQL_DATABASE
-          valueFrom:
-            secretKeyRef:
-              name: postgres-credentials
-              key: database
-        - name: POSTGRESQL_USER
-          valueFrom:
-            secretKeyRef:
-              name: postgres-credentials
-              key: username
-        - name: POSTGRESQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-credentials
-              key: password
-        - name: PGPASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-credentials
-              key: password
-        volumeMounts:
-        - name: postgres-data
-          mountPath: /var/lib/pgsql/data
       containers:
       - name: postgres
         image: {{ ocp4_workload_maas_rag_example_postgres_image }}
