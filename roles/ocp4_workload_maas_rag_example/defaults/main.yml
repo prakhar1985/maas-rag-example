@@ -15,7 +15,7 @@ ACTION: provision
 ocp4_workload_maas_rag_example_namespace: maas-rag-demo
 
 # PostgreSQL Configuration
-ocp4_workload_maas_rag_example_postgres_image: registry.redhat.io/rhel9/postgresql-16:latest
+ocp4_workload_maas_rag_example_postgres_image: pgvector/pgvector:pg16
 ocp4_workload_maas_rag_example_postgres_storage_size: 20Gi
 ocp4_workload_maas_rag_example_postgres_storage_class: ""  # Uses default storage class
 ocp4_workload_maas_rag_example_postgres_database: ragdb

@@ -23,17 +23,17 @@ spec:
         - containerPort: 5432
           name: postgres
         env:
-        - name: POSTGRESQL_DATABASE
+        - name: POSTGRES_DB
           valueFrom:
             secretKeyRef:
               name: postgres-credentials
               key: database
-        - name: POSTGRESQL_USER
+        - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
               name: postgres-credentials
               key: username
-        - name: POSTGRESQL_PASSWORD
+        - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: postgres-credentials
@@ -47,13 +47,13 @@ spec:
             memory: {{ ocp4_workload_maas_rag_example_postgres_memory_limit }}
         volumeMounts:
         - name: postgres-data
-          mountPath: /var/lib/pgsql/data
+          mountPath: /var/lib/postgresql/data
         livenessProbe:
           exec:
             command:
             - /bin/sh
             - -c
-            - pg_isready -U ${POSTGRESQL_USER} -d ${POSTGRESQL_DATABASE}
+            - pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
@@ -61,7 +61,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            - pg_isready -U ${POSTGRESQL_USER} -d ${POSTGRESQL_DATABASE}
+            - pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
           initialDelaySeconds: 10
           periodSeconds: 5
   volumeClaimTemplates:
