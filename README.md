@@ -14,7 +14,7 @@ Production-ready RAG (Retrieval-Augmented Generation) application demonstrating 
 ### Deploy
 
 ```bash
-# SSH to bastion
+# SSH to bastion (get SSH command from info page)
 ssh lab-user@bastion.GUID.dynamic.redhatworkshops.io
 
 # Clone repository
