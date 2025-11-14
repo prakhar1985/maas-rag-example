@@ -9,12 +9,16 @@ Simple Flask app demonstrating:
 """
 
 import os
+import sys
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask import Flask, request, jsonify
 import requests
 
 app = Flask(__name__)
+
+# Track if database has been initialized
+_db_initialized = False
 
 # Configuration from environment variables
 POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'postgres')
@@ -42,33 +46,45 @@ def get_db_connection():
 
 def init_db():
     """Initialize database schema with pgvector"""
-    conn = get_db_connection()
-    cur = conn.cursor()
+    global _db_initialized
 
-    # Install pgvector extension
-    cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+    if _db_initialized:
+        return
 
-    # Create documents table with vector column
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS documents (
-            id SERIAL PRIMARY KEY,
-            title TEXT NOT NULL,
-            content TEXT NOT NULL,
-            embedding vector(768),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
 
-    # Create index for vector similarity search
-    cur.execute("""
-        CREATE INDEX IF NOT EXISTS documents_embedding_idx
-        ON documents USING ivfflat (embedding vector_cosine_ops)
-        WITH (lists = 100)
-    """)
+        # Install pgvector extension
+        cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 
-    conn.commit()
-    cur.close()
-    conn.close()
+        # Create documents table with vector column
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS documents (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                content TEXT NOT NULL,
+                embedding vector(768),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Create index for vector similarity search
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS documents_embedding_idx
+            ON documents USING ivfflat (embedding vector_cosine_ops)
+            WITH (lists = 100)
+        """)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        _db_initialized = True
+        print("Database initialized successfully", file=sys.stderr, flush=True)
+    except Exception as e:
+        print(f"Database initialization error: {e}", file=sys.stderr, flush=True)
+        raise
 
 
 def get_embedding(text):
@@ -105,12 +121,10 @@ def chat_completion(messages):
     return response.json()['choices'][0]['message']['content']
 
 
-# Initialize database on app startup (works with gunicorn)
-try:
+@app.before_request
+def ensure_db_initialized():
+    """Ensure database is initialized before handling any request"""
     init_db()
-    print("Database initialized successfully")
-except Exception as e:
-    print(f"Warning: Could not initialize database: {e}")
 
 
 @app.route('/health')
