@@ -195,6 +195,7 @@ def ask():
     try:
         # Get question embedding
         question_embedding = get_embedding(question)
+        print(f"Question: {question}, Embedding length: {len(question_embedding)}", file=sys.stderr, flush=True)
 
         # Search for similar documents
         conn = get_db_connection()
@@ -209,6 +210,7 @@ def ask():
         """, (question_embedding, question_embedding))
 
         results = cur.fetchall()
+        print(f"Found {len(results)} results", file=sys.stderr, flush=True)
         cur.close()
         conn.close()
 
