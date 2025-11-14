@@ -1,0 +1,25 @@
+---
+# =============================================================================
+# MaaS RAG Example - Pre-Workload Tasks
+# =============================================================================
+
+- name: Display workload start message
+  ansible.builtin.debug:
+    msg:
+      - "========================================="
+      - "MaaS RAG Example - Starting Deployment"
+      - "========================================="
+      - "Namespace: {{ ocp4_workload_maas_rag_example_namespace }}"
+      - "LiteMaaS API: {{ ocp4_workload_maas_rag_example_litellm_api_url }}"
+      - "Embedding Model: {{ ocp4_workload_maas_rag_example_embedding_model }}"
+      - "Chat Model: {{ ocp4_workload_maas_rag_example_chat_model }}"
+
+- name: Validate LiteMaaS credentials are provided
+  ansible.builtin.assert:
+    that:
+      - ocp4_workload_maas_rag_example_litellm_api_url is defined
+      - ocp4_workload_maas_rag_example_litellm_api_url | length > 0
+      - ocp4_workload_maas_rag_example_litellm_api_key is defined
+      - ocp4_workload_maas_rag_example_litellm_api_key | length > 0
+    fail_msg: "LiteMaaS credentials not found. Ensure litellm_virtual_keys workload runs first."
+    quiet: true

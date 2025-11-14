@@ -1,0 +1,28 @@
+---
+# =============================================================================
+# MaaS RAG Example - Main Task Entry Point
+# =============================================================================
+
+- name: Running Pre Workload Tasks
+  ansible.builtin.import_tasks:
+    file: ./pre_workload.yml
+  become: "{{ become_override | bool }}"
+  when: ACTION == "provision" or ACTION == "create"
+
+- name: Running Workload Tasks
+  ansible.builtin.import_tasks:
+    file: ./workload.yml
+  become: "{{ become_override | bool }}"
+  when: ACTION == "provision" or ACTION == "create"
+
+- name: Running Post Workload Tasks
+  ansible.builtin.import_tasks:
+    file: ./post_workload.yml
+  become: "{{ become_override | bool }}"
+  when: ACTION == "provision" or ACTION == "create"
+
+- name: Running Workload removal Tasks
+  ansible.builtin.import_tasks:
+    file: ./remove_workload.yml
+  become: "{{ become_override | bool }}"
+  when: ACTION == "destroy" or ACTION == "remove"

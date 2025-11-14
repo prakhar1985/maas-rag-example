@@ -1,0 +1,23 @@
+---
+# =============================================================================
+# MaaS RAG Example - Post-Workload Tasks
+# =============================================================================
+
+- name: Send user info messages
+  when: ocp4_workload_maas_rag_example_enable_user_info | bool
+  block:
+    - name: Print application access information
+      agnosticd.core.agnosticd_user_info:
+        msg: "{{ item }}"
+      loop:
+        - "RAG Application URL: {{ maas_rag_app_url }}"
+        - "Test the application by visiting the URL above"
+        - "Use /ingest endpoint to add documents and /ask endpoint to query"
+
+    - name: Save user info data
+      agnosticd.core.agnosticd_user_info:
+        data:
+          maas_rag_app_url: "{{ maas_rag_app_url }}"
+          maas_rag_namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+          maas_rag_embedding_model: "{{ ocp4_workload_maas_rag_example_embedding_model }}"
+          maas_rag_chat_model: "{{ ocp4_workload_maas_rag_example_chat_model }}"

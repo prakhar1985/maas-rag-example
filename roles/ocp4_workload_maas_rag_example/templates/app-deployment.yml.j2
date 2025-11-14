@@ -1,0 +1,84 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maas-rag-app
+  labels:
+    app: maas-rag-app
+spec:
+  replicas: {{ ocp4_workload_maas_rag_example_app_replicas }}
+  selector:
+    matchLabels:
+      app: maas-rag-app
+  template:
+    metadata:
+      labels:
+        app: maas-rag-app
+    spec:
+      containers:
+      - name: app
+        image: {{ ocp4_workload_maas_rag_example_app_image }}
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        # PostgreSQL Configuration
+        - name: POSTGRES_HOST
+          value: postgres-0.postgres.{{ ocp4_workload_maas_rag_example_namespace }}.svc.cluster.local
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: database
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        # LiteMaaS Configuration
+        - name: LITEMAAS_API_URL
+          valueFrom:
+            secretKeyRef:
+              name: litemaas-credentials
+              key: api_url
+        - name: LITEMAAS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: litemaas-credentials
+              key: api_key
+        - name: EMBEDDING_MODEL
+          valueFrom:
+            secretKeyRef:
+              name: litemaas-credentials
+              key: embedding_model
+        - name: CHAT_MODEL
+          valueFrom:
+            secretKeyRef:
+              name: litemaas-credentials
+              key: chat_model
+        resources:
+          requests:
+            cpu: {{ ocp4_workload_maas_rag_example_app_cpu_request }}
+            memory: {{ ocp4_workload_maas_rag_example_app_memory_request }}
+          limits:
+            cpu: {{ ocp4_workload_maas_rag_example_app_cpu_limit }}
+            memory: {{ ocp4_workload_maas_rag_example_app_memory_limit }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5

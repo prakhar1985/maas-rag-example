@@ -1,0 +1,143 @@
+---
+# =============================================================================
+# MaaS RAG Example - Main Workload Tasks
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Step 1: Create Namespace
+# -----------------------------------------------------------------------------
+- name: Create namespace for RAG application
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ ocp4_workload_maas_rag_example_namespace }}"
+        labels:
+          app: maas-rag-demo
+
+# -----------------------------------------------------------------------------
+# Step 2: Create PostgreSQL Secret
+# -----------------------------------------------------------------------------
+- name: Create PostgreSQL secret
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: postgres-credentials
+      type: Opaque
+      stringData:
+        database: "{{ ocp4_workload_maas_rag_example_postgres_database }}"
+        username: "{{ ocp4_workload_maas_rag_example_postgres_user }}"
+        password: "{{ ocp4_workload_maas_rag_example_postgres_password }}"
+
+# -----------------------------------------------------------------------------
+# Step 3: Create LiteMaaS Secret
+# -----------------------------------------------------------------------------
+- name: Create LiteMaaS credentials secret
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: litemaas-credentials
+      type: Opaque
+      stringData:
+        api_url: "{{ ocp4_workload_maas_rag_example_litellm_api_url }}"
+        api_key: "{{ ocp4_workload_maas_rag_example_litellm_api_key }}"
+        embedding_model: "{{ ocp4_workload_maas_rag_example_embedding_model }}"
+        chat_model: "{{ ocp4_workload_maas_rag_example_chat_model }}"
+
+# -----------------------------------------------------------------------------
+# Step 4: Deploy PostgreSQL with pgvector
+# -----------------------------------------------------------------------------
+- name: Deploy PostgreSQL StatefulSet
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+    definition: "{{ lookup('template', 'postgresql-statefulset.yml.j2') }}"
+
+- name: Create PostgreSQL Service
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+    definition: "{{ lookup('template', 'postgresql-service.yml.j2') }}"
+
+- name: Wait for PostgreSQL to be ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+    label_selectors:
+      - app=postgres
+  register: r_postgres_pods
+  until:
+    - r_postgres_pods.resources | length > 0
+    - r_postgres_pods.resources[0].status.phase == "Running"
+  retries: 30
+  delay: 10
+
+# -----------------------------------------------------------------------------
+# Step 5: Deploy Flask RAG Application
+# -----------------------------------------------------------------------------
+- name: Deploy Flask RAG application
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+    definition: "{{ lookup('template', 'app-deployment.yml.j2') }}"
+
+- name: Create Flask app Service
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+    definition: "{{ lookup('template', 'app-service.yml.j2') }}"
+
+- name: Create Flask app Route
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+    definition: "{{ lookup('template', 'app-route.yml.j2') }}"
+
+- name: Wait for Flask app to be ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+    label_selectors:
+      - app=maas-rag-app
+  register: r_app_pods
+  until:
+    - r_app_pods.resources | length > 0
+    - r_app_pods.resources[0].status.phase == "Running"
+  retries: 30
+  delay: 10
+
+# -----------------------------------------------------------------------------
+# Step 6: Get Application Route
+# -----------------------------------------------------------------------------
+- name: Get application route
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ ocp4_workload_maas_rag_example_namespace }}"
+    name: maas-rag-app
+  register: r_app_route
+
+- name: Set application URL fact
+  ansible.builtin.set_fact:
+    maas_rag_app_url: "https://{{ r_app_route.resources[0].spec.host }}"
+
+- name: Display deployment success
+  ansible.builtin.debug:
+    msg:
+      - "========================================="
+      - "RAG Application Deployed Successfully!"
+      - "========================================="
+      - "Application URL: {{ maas_rag_app_url }}"
+      - "Namespace: {{ ocp4_workload_maas_rag_example_namespace }}"

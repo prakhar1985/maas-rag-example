@@ -1,0 +1,18 @@
+---
+namespace: maas_rag_example
+name: maas_rag_example
+version: 1.0.0
+readme: README.md
+authors:
+  - Prakhar Srivastava <psrivast@redhat.com>
+description: RAG application demonstrating LiteMaaS integration with PostgreSQL + pgvector
+license:
+  - Apache-2.0
+tags:
+  - openshift
+  - ai
+  - rag
+  - litemaas
+  - postgresql
+  - pgvector
+repository: https://github.com/prakhar1985/maas-rag-example

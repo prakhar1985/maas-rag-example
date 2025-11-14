@@ -1,0 +1,16 @@
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: maas-rag-app
+  labels:
+    app: maas-rag-app
+spec:
+  to:
+    kind: Service
+    name: maas-rag-app
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

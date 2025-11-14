@@ -1,0 +1,37 @@
+---
+# =============================================================================
+# MaaS RAG Example - Remove Workload Tasks
+# =============================================================================
+
+- name: Display workload removal start
+  ansible.builtin.debug:
+    msg:
+      - "========================================="
+      - "MaaS RAG Example - Starting Removal"
+      - "========================================="
+      - "Namespace: {{ ocp4_workload_maas_rag_example_namespace }}"
+
+- name: Remove namespace and all resources
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: "{{ ocp4_workload_maas_rag_example_namespace }}"
+
+- name: Wait for namespace deletion
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Namespace
+    name: "{{ ocp4_workload_maas_rag_example_namespace }}"
+  register: r_namespace
+  until: r_namespace.resources | length == 0
+  retries: 30
+  delay: 10
+  ignore_errors: true
+
+- name: Display removal complete
+  ansible.builtin.debug:
+    msg:
+      - "========================================="
+      - "RAG Application Removed Successfully"
+      - "========================================="

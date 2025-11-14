@@ -1,0 +1,68 @@
+---
+# =============================================================================
+# MaaS RAG Example - Default Variables
+# =============================================================================
+
+# Workload control
+become_override: false
+ocp_username: system:admin
+silent: false
+
+# Action: provision or destroy
+ACTION: provision
+
+# Namespace where RAG application will be deployed
+ocp4_workload_maas_rag_example_namespace: maas-rag-demo
+
+# PostgreSQL Configuration
+ocp4_workload_maas_rag_example_postgres_image: registry.redhat.io/rhel9/postgresql-16:latest
+ocp4_workload_maas_rag_example_postgres_storage_size: 20Gi
+ocp4_workload_maas_rag_example_postgres_storage_class: ""  # Uses default storage class
+ocp4_workload_maas_rag_example_postgres_database: ragdb
+ocp4_workload_maas_rag_example_postgres_user: raguser
+ocp4_workload_maas_rag_example_postgres_password: "{{ lookup('password', '/dev/null length=16 chars=ascii_letters,digits') }}"
+
+# PostgreSQL Resources
+ocp4_workload_maas_rag_example_postgres_cpu_request: 500m
+ocp4_workload_maas_rag_example_postgres_cpu_limit: 1000m
+ocp4_workload_maas_rag_example_postgres_memory_request: 1Gi
+ocp4_workload_maas_rag_example_postgres_memory_limit: 2Gi
+
+# Flask Application Configuration
+ocp4_workload_maas_rag_example_app_image: quay.io/psrivast/maas-rag-app:latest
+ocp4_workload_maas_rag_example_app_replicas: 1
+
+# Flask App Resources
+ocp4_workload_maas_rag_example_app_cpu_request: 250m
+ocp4_workload_maas_rag_example_app_cpu_limit: 500m
+ocp4_workload_maas_rag_example_app_memory_request: 512Mi
+ocp4_workload_maas_rag_example_app_memory_limit: 1Gi
+
+# LiteMaaS Integration
+# These will be provided by the litellm_virtual_keys workload
+ocp4_workload_maas_rag_example_litellm_api_url: "{{ litellm_api_base_url | default('') }}"
+ocp4_workload_maas_rag_example_litellm_api_key: "{{ litellm_virtual_key | default('') }}"
+ocp4_workload_maas_rag_example_embedding_model: nomic-embed-text-v1-5
+ocp4_workload_maas_rag_example_chat_model: granite-3-2-8b-instruct
+
+# Sample Documents to Preload
+ocp4_workload_maas_rag_example_preload_docs: true
+ocp4_workload_maas_rag_example_sample_docs:
+  - title: "OpenShift Overview"
+    content: |
+      Red Hat OpenShift is a Kubernetes platform for containerized applications.
+      It provides developer and operational tools for managing applications at scale.
+      OpenShift includes features like automated operations, built-in monitoring, and enterprise security.
+  - title: "What is CNV"
+    content: |
+      OpenShift Virtualization (formerly CNV) allows you to run virtual machines alongside containers.
+      It leverages KubeVirt to provide VM management through Kubernetes APIs.
+      You can migrate existing VMs to OpenShift and manage them using the same tools as containers.
+  - title: "LiteMaaS Introduction"
+    content: |
+      LiteMaaS (LiteLLM as a Service) provides access to AI models through a unified API.
+      It supports multiple models including Granite, Mistral, and CodeLlama.
+      LiteMaaS uses virtual keys for authentication and supports chat, completion, and embedding endpoints.
+
+# User info messages
+ocp4_workload_maas_rag_example_enable_user_info: true
