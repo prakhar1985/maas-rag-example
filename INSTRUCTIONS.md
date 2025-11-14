@@ -12,16 +12,26 @@
 cd /home/lab-user/maas-rag-example
 git pull origin main
 
-# 2. Login to OpenShift
+# 2. Install required Ansible collections
+ansible-galaxy collection install -r requirements.yml
+
+# 3. Login to OpenShift
 oc login https://api.YOUR_CLUSTER.com:6443 --token=YOUR_TOKEN
 
-# 3. Deploy (replace with your actual values)
+# 4. Deploy (replace with your actual values)
 ansible-playbook deploy.yml \
   -e litellm_api_base_url=https://litellm-rhpds.apps.YOUR_CLUSTER.com/v1 \
   -e litellm_virtual_key=sk-YOUR-VIRTUAL-KEY-HERE
 ```
 
 Done! 🎉
+
+The playbook automatically:
+- ✅ Validates credentials
+- ✅ Installs the collection
+- ✅ Builds container image on OpenShift
+- ✅ Deploys PostgreSQL + Flask app
+- ✅ Shows you the app URL
 
 ## Test It
 

@@ -26,7 +26,7 @@ RAG (Retrieval-Augmented Generation) application demonstrating LiteMaaS integrat
                             - Vector similarity search
 ```
 
-## Quick Start
+## Quick Start (ONE Command)
 
 ### Prerequisites
 
@@ -34,83 +34,41 @@ RAG (Retrieval-Augmented Generation) application demonstrating LiteMaaS integrat
 2. **Order LiteMaaS Virtual Keys** with:
    - `nomic-embed-text-v1-5` (for embeddings)
    - `granite-3-2-8b-instruct` (for chat)
+   - Duration: 7 days or more
 
-### Step 1: Build and Push Container Image
-
-```bash
-cd roles/ocp4_workload_maas_rag_example/files
-
-# Build image
-podman build -t quay.io/YOUR_USERNAME/maas-rag-app:latest -f Containerfile .
-
-# Login to registry
-podman login quay.io
-
-# Push image
-podman push quay.io/YOUR_USERNAME/maas-rag-app:latest
-```
-
-**Update the image reference** in `roles/ocp4_workload_maas_rag_example/defaults/main.yml`:
-
-```yaml
-ocp4_workload_maas_rag_example_app_image: quay.io/YOUR_USERNAME/maas-rag-app:latest
-```
-
-### Step 2: Install Collection
+### Deploy Everything in One Step
 
 ```bash
-# Clone this repo
+# Clone the repository
 git clone https://github.com/prakhar1985/maas-rag-example.git
 cd maas-rag-example
 
-# Install collection
-ansible-galaxy collection install .
+# Install required Ansible collections
+ansible-galaxy collection install -r requirements.yml
+
+# Login to OpenShift cluster
+oc login https://api.YOUR_CLUSTER.com:6443 --token=YOUR_TOKEN
+
+# Deploy everything (replace with your actual credentials)
+ansible-playbook deploy.yml \
+  -e litellm_api_base_url=https://litellm-rhpds.apps.YOUR_CLUSTER.com/v1 \
+  -e litellm_virtual_key=sk-YOUR-VIRTUAL-KEY-HERE
 ```
 
-### Step 3: Create Variables File
+**That's it!** The playbook will:
+1. ✅ Validate OpenShift connection
+2. ✅ Validate LiteMaaS credentials
+3. ✅ Install this collection automatically
+4. ✅ Build container image on OpenShift (no Quay.io needed)
+5. ✅ Deploy PostgreSQL 16 with pgvector extension
+6. ✅ Deploy Flask RAG application
+7. ✅ Create OpenShift Route
+8. ✅ Display application URL
+9. ✅ Optionally run a quick test
 
-Create `vars.yml` with your LiteMaaS credentials:
+### Test the Application
 
-```yaml
----
-# LiteMaaS credentials from your virtual keys order
-litellm_api_base_url: https://litellm-rhpds.apps.YOUR_CLUSTER.com/v1
-litellm_virtual_key: sk-YOUR-KEY-HERE
-
-# OpenShift cluster connection
-openshift_api_url: https://api.YOUR_CLUSTER.com:6443
-openshift_api_key: YOUR_OPENSHIFT_TOKEN
-
-# Optional: Customize namespace
-ocp4_workload_maas_rag_example_namespace: maas-rag-demo
-```
-
-### Step 4: Deploy the Workload
-
-```bash
-# Create deployment playbook
-cat > deploy.yml <<EOF
----
-- name: Deploy MaaS RAG Example
-  hosts: localhost
-  gather_facts: false
-  vars_files:
-    - vars.yml
-  tasks:
-    - name: Run workload
-      ansible.builtin.include_role:
-        name: maas_rag_example.maas_rag_example.ocp4_workload_maas_rag_example
-      vars:
-        ACTION: provision
-EOF
-
-# Deploy
-ansible-playbook deploy.yml
-```
-
-### Step 5: Test the Application
-
-Get the application URL:
+The deployment playbook displays the application URL. Use it to test:
 
 ```bash
 oc get route -n maas-rag-demo maas-rag-app -o jsonpath='{.spec.host}'
@@ -183,24 +141,9 @@ See `roles/ocp4_workload_maas_rag_example/defaults/main.yml` for all available v
 
 ## Cleanup
 
-```bash
-# Create cleanup playbook
-cat > cleanup.yml <<EOF
----
-- name: Remove MaaS RAG Example
-  hosts: localhost
-  gather_facts: false
-  vars_files:
-    - vars.yml
-  tasks:
-    - name: Run workload removal
-      ansible.builtin.include_role:
-        name: maas_rag_example.maas_rag_example.ocp4_workload_maas_rag_example
-      vars:
-        ACTION: destroy
-EOF
+Remove everything with one command:
 
-# Remove deployment
+```bash
 ansible-playbook cleanup.yml
 ```
 
@@ -211,36 +154,51 @@ ansible-playbook cleanup.yml
 ```
 maas-rag-example/
 ├── galaxy.yml                           # Collection metadata
-├── README.md                            # This file
+├── requirements.yml                     # Ansible collection dependencies
+├── deploy.yml                           # One-step deployment playbook
+├── cleanup.yml                          # One-step cleanup playbook
+├── README.md                            # Full documentation (this file)
+├── QUICKSTART.md                        # Quick start guide
+├── INSTRUCTIONS.md                      # Simple one-page instructions
 └── roles/
     └── ocp4_workload_maas_rag_example/
         ├── defaults/main.yml            # Default variables
         ├── tasks/
         │   ├── main.yml                 # Entry point
-        │   ├── pre_workload.yml         # Pre-deployment tasks
-        │   ├── workload.yml             # Main deployment
-        │   ├── post_workload.yml        # Post-deployment tasks
+        │   ├── pre_workload.yml         # Pre-deployment validation
+        │   ├── workload.yml             # Main deployment (with BuildConfig)
+        │   ├── post_workload.yml        # Post-deployment user info
         │   └── remove_workload.yml      # Cleanup tasks
         ├── templates/
-        │   ├── postgresql-statefulset.yml.j2
+        │   ├── postgresql-statefulset.yml.j2  # PostgreSQL with pgvector
         │   ├── postgresql-service.yml.j2
-        │   ├── app-deployment.yml.j2
+        │   ├── app-imagestream.yml.j2         # Image registry
+        │   ├── app-buildconfig.yml.j2         # Build from GitHub
+        │   ├── app-deployment.yml.j2          # Flask app deployment
         │   ├── app-service.yml.j2
-        │   └── app-route.yml.j2
+        │   └── app-route.yml.j2               # External access
         └── files/
-            ├── app.py                   # Flask application
+            ├── app.py                   # Flask RAG application
             ├── requirements.txt         # Python dependencies
-            └── Containerfile            # Container build file
+            └── Containerfile            # Container build definition
 ```
 
-### Building the Container Image
+### Container Image Building
 
-The Flask application is containerized for deployment on OpenShift. Build steps:
+The container image is **automatically built on OpenShift** during deployment:
 
-1. Navigate to `roles/ocp4_workload_maas_rag_example/files/`
-2. Build: `podman build -t quay.io/YOUR_USERNAME/maas-rag-app:latest -f Containerfile .`
-3. Push: `podman push quay.io/YOUR_USERNAME/maas-rag-app:latest`
-4. Update image reference in `defaults/main.yml`
+- BuildConfig pulls source from GitHub
+- Builds using the Containerfile in `files/`
+- Stores in OpenShift internal registry
+- **No external registry (Quay.io) required**
+
+To disable auto-build and use a pre-built image:
+
+```yaml
+# In defaults/main.yml
+ocp4_workload_maas_rag_example_build_image: false
+ocp4_workload_maas_rag_example_app_image: quay.io/YOUR_USERNAME/maas-rag-app:latest
+```
 
 ## How It Works
 
