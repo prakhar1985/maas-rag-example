@@ -160,9 +160,6 @@ maas-rag-example/
 ├── README.md                            # Full documentation (this file)
 ├── QUICKSTART.md                        # Quick start guide
 ├── INSTRUCTIONS.md                      # Simple one-page instructions
-├── plugins/
-│   └── modules/
-│       └── agnosticd_user_info.py       # User info module (bundled)
 └── roles/
     └── ocp4_workload_maas_rag_example/
         ├── defaults/main.yml            # Default variables
