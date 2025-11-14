@@ -7,7 +7,7 @@ Production-ready RAG (Retrieval-Augmented Generation) application demonstrating 
 ### Prerequisites
 
 1. **OpenShift Open Environment** from RHDP catalog
-2. **LiteMaaS Virtual Keys** with:
+2. **LiteMaaS Virtual Keys** from RHDP catalog with:
    - `nomic-embed-text-v1-5` (embeddings)
    - `granite-3-2-8b-instruct` (chat)
 
